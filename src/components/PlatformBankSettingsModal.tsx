@@ -71,7 +71,7 @@ export const PlatformBankSettingsModal: React.FC<PlatformBankSettingsModalProps>
       ifscCode: ifscCode.trim().toUpperCase(),
       bankName: bankName.trim(),
       branch: branch.trim(),
-      monthlyFee: Number(monthlyFee) || 1499,
+      monthlyFee: Number(monthlyFee) || 499,
     });
     setIsSaving(false);
 
@@ -145,7 +145,7 @@ export const PlatformBankSettingsModal: React.FC<PlatformBankSettingsModalProps>
               <View style={{ flex: 1 }}>
                 <Input
                   label="Monthly Fee (₹)"
-                  placeholder="1499"
+                  placeholder="499"
                   value={monthlyFee}
                   onChangeText={setMonthlyFee}
                   keyboardType="numeric"

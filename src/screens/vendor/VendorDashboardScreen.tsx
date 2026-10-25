@@ -98,7 +98,7 @@ export const VendorDashboardScreen: React.FC<VendorDashboardProps> = ({ navigati
               onPress={() => setIsSubscriptionModalOpen(true)}
               style={styles.renewBtn}
             >
-              <Text style={styles.renewBtnText}>⚡ Activate Pro Subscription (₹1,499/mo)</Text>
+              <Text style={styles.renewBtnText}>⚡ Activate Pro Subscription (₹499/mo)</Text>
             </TouchableOpacity>
           </View>
         ) : (

@@ -16,7 +16,7 @@ export const DEFAULT_PLATFORM_BANK_DETAILS: PlatformBankDetails = {
   ifscCode: process.env.EXPO_PUBLIC_PLATFORM_BANK_IFSC || 'SBIN0001234',
   branch: 'Main City Branch',
   upiId: process.env.EXPO_PUBLIC_PLATFORM_UPI_ID || 'palaparthigovardhan@upi',
-  monthlyFee: Number(process.env.EXPO_PUBLIC_SUBSCRIPTION_MONTHLY_PRICE) || 1499,
+  monthlyFee: Number(process.env.EXPO_PUBLIC_SUBSCRIPTION_MONTHLY_PRICE) || 499,
   currency: 'INR',
 };
 

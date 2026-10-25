@@ -91,7 +91,7 @@ CREATE TABLE subscription_transactions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     vendor_id UUID NOT NULL REFERENCES vendors(id) ON DELETE CASCADE,
     plan_name TEXT NOT NULL DEFAULT 'Monthly Pro Vendor Membership',
-    amount NUMERIC(10,2) NOT NULL DEFAULT 1499.00,
+    amount NUMERIC(10,2) NOT NULL DEFAULT 499.00,
     currency TEXT NOT NULL DEFAULT 'INR',
     payment_method TEXT NOT NULL CHECK (payment_method IN ('razorpay', 'bank_transfer', 'upi')),
     razorpay_order_id TEXT,
