@@ -84,7 +84,7 @@ export interface ChatMessage {
   sender?: Profile;
 }
 
-export type PaymentMethod = 'razorpay' | 'bank_transfer' | 'upi';
+export type PaymentMethod = 'razorpay' | 'stripe' | 'bank_transfer' | 'upi';
 export type PaymentStatus = 'pending' | 'verified' | 'failed';
 
 export interface SubscriptionTransaction {
@@ -97,6 +97,7 @@ export interface SubscriptionTransaction {
   razorpay_order_id?: string;
   razorpay_payment_id?: string;
   razorpay_signature?: string;
+  stripe_payment_id?: string;
   bank_reference_number?: string;
   bank_receipt_url?: string;
   status: PaymentStatus;

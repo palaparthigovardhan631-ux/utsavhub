@@ -8,6 +8,7 @@ import {
   Text,
   ActivityIndicator,
   StyleSheet,
+  StyleProp,
   ViewStyle,
   TextStyle,
 } from 'react-native';
@@ -20,8 +21,8 @@ interface ButtonProps {
   size?: 'sm' | 'md' | 'lg';
   loading?: boolean;
   disabled?: boolean;
-  style?: ViewStyle;
-  textStyle?: TextStyle;
+  style?: StyleProp<ViewStyle>;
+  textStyle?: StyleProp<TextStyle>;
   icon?: React.ReactNode;
 }
 
@@ -82,7 +83,7 @@ export const Button: React.FC<ButtonProps> = ({
         styles.button,
         getVariantStyle(),
         getSizeStyle(),
-        (disabled || loading) && styles.disabled,
+        (disabled || loading) ? styles.disabled : undefined,
         style,
       ]}
     >
