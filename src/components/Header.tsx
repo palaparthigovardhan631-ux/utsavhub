@@ -1,11 +1,13 @@
 // ==============================================================================
 // UTSAVHUB TOP NAVIGATION HEADER
+// Includes Role Switching and Platform Owner Bank & UPI Settings
 // ==============================================================================
 
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Platform } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView } from 'react-native';
 import { COLORS, SPACING, RADIUS } from '../constants/theme';
 import { useAuth } from '../context/AuthContext';
+import { PlatformBankSettingsModal } from './PlatformBankSettingsModal';
 
 interface HeaderProps {
   title?: string;
@@ -18,7 +20,8 @@ export const Header: React.FC<HeaderProps> = ({
   subtitle,
   showRoleToggle = true,
 }) => {
-  const { profile, role, signOut, demoLoginAs } = useAuth();
+  const { role, signOut, demoLoginAs } = useAuth();
+  const [isBankSettingsOpen, setIsBankSettingsOpen] = useState(false);
 
   const handleRoleToggle = () => {
     if (role === 'client') {
@@ -48,6 +51,15 @@ export const Header: React.FC<HeaderProps> = ({
         </View>
 
         <View style={styles.right}>
+          {/* Platform Owner UPI & Bank Settings Launcher */}
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => setIsBankSettingsOpen(true)}
+            style={styles.bankConfigBtn}
+          >
+            <Text style={styles.bankConfigText}>🏦 Bank</Text>
+          </TouchableOpacity>
+
           {showRoleToggle && (
             <TouchableOpacity
               activeOpacity={0.8}
@@ -72,6 +84,12 @@ export const Header: React.FC<HeaderProps> = ({
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* Platform Owner Banking & UPI Config Modal */}
+      <PlatformBankSettingsModal
+        visible={isBankSettingsOpen}
+        onClose={() => setIsBankSettingsOpen(false)}
+      />
     </SafeAreaView>
   );
 };
@@ -128,6 +146,20 @@ const styles = StyleSheet.create({
   right: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  bankConfigBtn: {
+    backgroundColor: '#FEF3C7',
+    borderWidth: 1,
+    borderColor: '#F59E0B',
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: RADIUS.full,
+    marginRight: 6,
+  },
+  bankConfigText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#92400E',
   },
   roleToggleBtn: {
     paddingHorizontal: 10,

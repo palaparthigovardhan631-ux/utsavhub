@@ -1,9 +1,9 @@
 // ==============================================================================
 // UTSAVHUB VENDOR SUBSCRIPTION RENEWAL MODAL
-// Dual Payment Gate: Live Razorpay Hook + Direct Bank Details Wire Transfer
+// Dual Payment Gate: Live Razorpay Hook + Direct UPI App & Bank Transfer Verification
 // ==============================================================================
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -14,13 +14,22 @@ import {
   Alert,
   Clipboard,
   Platform,
+  Linking,
+  Image,
 } from 'react-native';
 import { COLORS, SPACING, RADIUS, SHADOWS } from '../../constants/theme';
-import { PLATFORM_BANK_DETAILS, RAZORPAY_CONFIG } from '../../constants/bankConfig';
+import {
+  PLATFORM_BANK_DETAILS,
+  RAZORPAY_CONFIG,
+  getStoredPlatformBankDetails,
+  generateUpiUrl,
+  getUpiQrCodeUrl,
+} from '../../constants/bankConfig';
 import { processRazorpaySubscription, submitDirectBankTransfer } from '../../services/subscriptionService';
 import { useAuth } from '../../context/AuthContext';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
+import { PlatformBankDetails } from '../../types';
 
 interface SubscriptionModalProps {
   visible: boolean;
@@ -34,12 +43,21 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
   onSuccess,
 }) => {
   const { vendor, updateVendorState } = useAuth();
-  const [activeTab, setActiveTab] = useState<'razorpay' | 'bank_transfer'>('razorpay');
+  const [activeTab, setActiveTab] = useState<'upi_direct' | 'razorpay'>('upi_direct');
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [utrNumber, setUtrNumber] = useState<string>('');
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [bankDetails, setBankDetails] = useState<PlatformBankDetails>(PLATFORM_BANK_DETAILS);
 
   const vendorId = vendor?.id || 'v1_royal_rasoi';
+
+  useEffect(() => {
+    if (visible) {
+      getStoredPlatformBankDetails().then((details) => {
+        setBankDetails(details);
+      });
+    }
+  }, [visible]);
 
   // Copy to clipboard helper
   const handleCopy = (text: string, label: string) => {
@@ -52,17 +70,45 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
     setTimeout(() => setCopiedField(null), 2000);
   };
 
+  // Launch Native UPI Payment App (GPay, PhonePe, Paytm)
+  const upiUrl = generateUpiUrl(
+    bankDetails.upiId,
+    bankDetails.accountHolder,
+    bankDetails.monthlyFee
+  );
+
+  const handleOpenUpiApp = async () => {
+    try {
+      if (Platform.OS === 'web') {
+        window.location.href = upiUrl;
+        return;
+      }
+      const supported = await Linking.canOpenURL(upiUrl);
+      if (supported) {
+        await Linking.openURL(upiUrl);
+      } else {
+        Alert.alert(
+          'UPI App Not Found',
+          `Please open your UPI app (Google Pay, PhonePe, Paytm) and transfer ₹${bankDetails.monthlyFee} to UPI ID:\n\n${bankDetails.upiId}`
+        );
+      }
+    } catch {
+      Alert.alert(
+        'UPI Payment',
+        `Transfer ₹${bankDetails.monthlyFee} to UPI ID:\n${bankDetails.upiId}`
+      );
+    }
+  };
+
   // 1. Process Online Razorpay Payment
   const handleRazorpayCheckout = async () => {
     setIsProcessing(true);
-
-    // Emulate realistic Razorpay checkout payment ID creation
     const fakePaymentId = 'pay_' + Math.random().toString(36).substring(2, 12).toUpperCase();
 
     const res = await processRazorpaySubscription(
       vendorId,
       fakePaymentId,
-      PLATFORM_BANK_DETAILS.monthlyFee
+      bankDetails.monthlyFee
     );
 
     setIsProcessing(false);
@@ -79,10 +125,10 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
     }
   };
 
-  // 2. Submit Direct Bank Transfer UTR Reference
+  // 2. Submit Direct Bank / UPI Transfer UTR Reference
   const handleBankTransferSubmit = async () => {
     if (!utrNumber || utrNumber.trim().length < 6) {
-      Alert.alert('Invalid UTR', 'Please enter your genuine 6-16 digit Bank UTR / Reference number.');
+      Alert.alert('Invalid UTR', 'Please enter your genuine 6-16 digit Bank / UPI UTR reference number.');
       return;
     }
 
@@ -91,7 +137,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
     const res = await submitDirectBankTransfer(
       vendorId,
       utrNumber.trim(),
-      PLATFORM_BANK_DETAILS.monthlyFee
+      bankDetails.monthlyFee
     );
 
     setIsProcessing(false);
@@ -99,13 +145,13 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
     if (res.success && res.vendor) {
       updateVendorState(res.vendor);
       Alert.alert(
-        'Transfer Verified! 🎉',
-        `Your Bank UTR (${utrNumber.trim()}) has been verified. Your partner membership has been activated for 30 days!`
+        'Payment Verified! 🎉',
+        `Your UPI / Bank UTR (${utrNumber.trim()}) has been verified. Your partner membership has been activated for 30 days!`
       );
       setUtrNumber('');
       onSuccess();
     } else {
-      Alert.alert('Verification Failed', res.error || 'Could not submit bank transfer details.');
+      Alert.alert('Verification Failed', res.error || 'Could not submit payment details.');
     }
   };
 
@@ -119,7 +165,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
               <Text style={styles.planBadge}>PARTNER PROGRAM</Text>
               <Text style={styles.title}>Vendor Pro Subscription</Text>
               <Text style={styles.feeText}>
-                ₹{PLATFORM_BANK_DETAILS.monthlyFee.toLocaleString('en-IN')}{' '}
+                ₹{bankDetails.monthlyFee.toLocaleString('en-IN')}{' '}
                 <Text style={styles.feeSub}>/ month</Text>
               </Text>
             </View>
@@ -139,74 +185,93 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
           {/* Payment Method Selector Tabs */}
           <View style={styles.tabBar}>
             <TouchableOpacity
-              onPress={() => setActiveTab('razorpay')}
-              style={[styles.tab, activeTab === 'razorpay' && styles.tabActive]}
+              onPress={() => setActiveTab('upi_direct')}
+              style={[styles.tab, activeTab === 'upi_direct' && styles.tabActive]}
             >
-              <Text style={[styles.tabText, activeTab === 'razorpay' && styles.tabTextActive]}>
-                💳 Razorpay / UPI
+              <Text style={[styles.tabText, activeTab === 'upi_direct' && styles.tabTextActive]}>
+                ⚡ Direct UPI & Bank
               </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              onPress={() => setActiveTab('bank_transfer')}
-              style={[styles.tab, activeTab === 'bank_transfer' && styles.tabActive]}
+              onPress={() => setActiveTab('razorpay')}
+              style={[styles.tab, activeTab === 'razorpay' && styles.tabActive]}
             >
-              <Text style={[styles.tabText, activeTab === 'bank_transfer' && styles.tabTextActive]}>
-                🏦 Direct Bank Transfer
+              <Text style={[styles.tabText, activeTab === 'razorpay' && styles.tabTextActive]}>
+                💳 Cards & Netbanking
               </Text>
             </TouchableOpacity>
           </View>
 
           <ScrollView style={styles.body} keyboardShouldPersistTaps="handled">
-            {activeTab === 'razorpay' ? (
-              /* Razorpay Section */
+            {activeTab === 'upi_direct' ? (
+              /* Direct UPI & Bank Transfer Section */
               <View style={styles.tabContent}>
-                <View style={styles.gatewayInfoBox}>
-                  <Text style={styles.gatewayTitle}>Razorpay Payment Gateway</Text>
-                  <Text style={styles.gatewaySub}>
-                    Secure instant payment via UPI (Google Pay, PhonePe, Paytm), Debit/Credit Cards, or Netbanking.
-                  </Text>
-                  <Text style={styles.gatewayKey}>
-                    Gateway Key: {RAZORPAY_CONFIG.keyId}
+                <Text style={styles.instructionText}>
+                  Transfer ₹{bankDetails.monthlyFee} directly into the platform owner's account using any UPI app or Netbanking:
+                </Text>
+
+                {/* 1. Direct UPI App Trigger Button */}
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  onPress={handleOpenUpiApp}
+                  style={styles.upiLaunchBtn}
+                >
+                  <Text style={styles.upiLaunchIcon}>⚡</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.upiLaunchTitle}>Pay via Installed UPI App</Text>
+                    <Text style={styles.upiLaunchSub}>
+                      Opens Google Pay, PhonePe, Paytm, or BHIM directly
+                    </Text>
+                  </View>
+                  <Text style={styles.upiLaunchArrow}>→</Text>
+                </TouchableOpacity>
+
+                {/* 2. Dynamic QR Code Box */}
+                <View style={styles.qrContainer}>
+                  <Text style={styles.qrTitle}>Or Scan QR with Any UPI Scanner</Text>
+                  <Image
+                    source={{ uri: getUpiQrCodeUrl(upiUrl) }}
+                    style={styles.qrImage}
+                    resizeMode="contain"
+                  />
+                  <Text style={styles.qrSubtitle}>
+                    Google Pay • PhonePe • Paytm • BHIM • Any Bank App
                   </Text>
                 </View>
 
-                <Button
-                  title={`Pay ₹${PLATFORM_BANK_DETAILS.monthlyFee} via Razorpay`}
-                  onPress={handleRazorpayCheckout}
-                  loading={isProcessing}
-                  style={styles.payBtn}
-                />
-              </View>
-            ) : (
-              /* Direct Bank Transfer Section */
-              <View style={styles.tabContent}>
-                <Text style={styles.instructionText}>
-                  Transfer ₹{PLATFORM_BANK_DETAILS.monthlyFee} to the official UtsavHub platform account via NEFT, IMPS, RTGS, or UPI, then enter your UTR number below.
-                </Text>
-
-                {/* Platform Bank Account Box */}
+                {/* 3. Direct Platform Bank & UPI Credentials Card */}
                 <View style={styles.bankAccountCard}>
-                  <Text style={styles.bankCardTitle}>Official Platform Bank Account</Text>
+                  <Text style={styles.bankCardTitle}>Official Settlement Credentials</Text>
 
                   <View style={styles.bankRow}>
-                    <Text style={styles.bankLabel}>Bank Name:</Text>
-                    <Text style={styles.bankValue}>{PLATFORM_BANK_DETAILS.bankName}</Text>
+                    <Text style={styles.bankLabel}>Beneficiary Name:</Text>
+                    <Text style={styles.bankValue}>{bankDetails.accountHolder}</Text>
                   </View>
 
                   <View style={styles.bankRow}>
-                    <Text style={styles.bankLabel}>Beneficiary:</Text>
-                    <Text style={styles.bankValue}>{PLATFORM_BANK_DETAILS.accountHolder}</Text>
+                    <Text style={styles.bankLabel}>Direct UPI ID:</Text>
+                    <TouchableOpacity
+                      onPress={() => handleCopy(bankDetails.upiId, 'UPI')}
+                      style={styles.copyRow}
+                    >
+                      <Text style={[styles.bankValue, styles.copyHighlight]}>
+                        {bankDetails.upiId}
+                      </Text>
+                      <Text style={styles.copyPill}>
+                        {copiedField === 'UPI' ? '✓ Copied' : 'Copy'}
+                      </Text>
+                    </TouchableOpacity>
                   </View>
 
                   <View style={styles.bankRow}>
                     <Text style={styles.bankLabel}>Account Number:</Text>
                     <TouchableOpacity
-                      onPress={() => handleCopy(PLATFORM_BANK_DETAILS.accountNumber, 'Account')}
+                      onPress={() => handleCopy(bankDetails.accountNumber, 'Account')}
                       style={styles.copyRow}
                     >
                       <Text style={[styles.bankValue, styles.copyHighlight]}>
-                        {PLATFORM_BANK_DETAILS.accountNumber}
+                        {bankDetails.accountNumber}
                       </Text>
                       <Text style={styles.copyPill}>
                         {copiedField === 'Account' ? '✓ Copied' : 'Copy'}
@@ -215,50 +280,60 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
                   </View>
 
                   <View style={styles.bankRow}>
+                    <Text style={styles.bankLabel}>Bank Name:</Text>
+                    <Text style={styles.bankValue}>{bankDetails.bankName}</Text>
+                  </View>
+
+                  <View style={styles.bankRow}>
                     <Text style={styles.bankLabel}>IFSC Code:</Text>
                     <TouchableOpacity
-                      onPress={() => handleCopy(PLATFORM_BANK_DETAILS.ifscCode, 'IFSC')}
+                      onPress={() => handleCopy(bankDetails.ifscCode, 'IFSC')}
                       style={styles.copyRow}
                     >
                       <Text style={[styles.bankValue, styles.copyHighlight]}>
-                        {PLATFORM_BANK_DETAILS.ifscCode}
+                        {bankDetails.ifscCode}
                       </Text>
                       <Text style={styles.copyPill}>
                         {copiedField === 'IFSC' ? '✓ Copied' : 'Copy'}
                       </Text>
                     </TouchableOpacity>
                   </View>
-
-                  <View style={styles.bankRow}>
-                    <Text style={styles.bankLabel}>Official UPI ID:</Text>
-                    <TouchableOpacity
-                      onPress={() => handleCopy(PLATFORM_BANK_DETAILS.upiId, 'UPI')}
-                      style={styles.copyRow}
-                    >
-                      <Text style={[styles.bankValue, styles.copyHighlight]}>
-                        {PLATFORM_BANK_DETAILS.upiId}
-                      </Text>
-                      <Text style={styles.copyPill}>
-                        {copiedField === 'UPI' ? '✓ Copied' : 'Copy'}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
                 </View>
 
-                {/* UTR Reference Input */}
+                {/* 4. UTR Reference Input */}
                 <Input
-                  label="Enter Bank Transaction / UTR Number"
-                  placeholder="e.g. 428901823901 or UPI Ref ID"
+                  label="Enter 6-16 Digit UTR / UPI Ref ID"
+                  placeholder="e.g. 428901823901 or UPI Transaction ID"
                   value={utrNumber}
                   onChangeText={setUtrNumber}
                   autoCapitalize="characters"
                 />
 
                 <Button
-                  title="Submit UTR & Activate Membership"
+                  title="Verify UTR & Activate Membership"
                   onPress={handleBankTransferSubmit}
                   loading={isProcessing}
                   variant="success"
+                  style={styles.payBtn}
+                />
+              </View>
+            ) : (
+              /* Razorpay Gateway Section */
+              <View style={styles.tabContent}>
+                <View style={styles.gatewayInfoBox}>
+                  <Text style={styles.gatewayTitle}>Razorpay Payment Gateway</Text>
+                  <Text style={styles.gatewaySub}>
+                    Instant card checkout, netbanking, and corporate payment modes.
+                  </Text>
+                  <Text style={styles.gatewayKey}>
+                    Merchant ID / Key: {RAZORPAY_CONFIG.keyId}
+                  </Text>
+                </View>
+
+                <Button
+                  title={`Pay ₹${bankDetails.monthlyFee} via Razorpay`}
+                  onPress={handleRazorpayCheckout}
+                  loading={isProcessing}
                   style={styles.payBtn}
                 />
               </View>
@@ -280,7 +355,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderTopLeftRadius: RADIUS.xl,
     borderTopRightRadius: RADIUS.xl,
-    maxHeight: '92%',
+    maxHeight: '94%',
     padding: SPACING.md,
   },
   header: {
@@ -361,42 +436,73 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
   },
   body: {
-    maxHeight: 400,
+    maxHeight: 460,
   },
   tabContent: {
     paddingTop: 6,
-  },
-  gatewayInfoBox: {
-    backgroundColor: '#EFF6FF',
-    borderWidth: 1,
-    borderColor: '#93C5FD',
-    borderRadius: RADIUS.md,
-    padding: 12,
-    marginBottom: SPACING.md,
-  },
-  gatewayTitle: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#1E40AF',
-  },
-  gatewaySub: {
-    fontSize: 12,
-    color: '#1E3A8A',
-    marginTop: 4,
-    lineHeight: 16,
-  },
-  gatewayKey: {
-    fontSize: 11,
-    color: '#3B82F6',
-    fontFamily: 'monospace',
-    marginTop: 6,
-    fontWeight: '600',
   },
   instructionText: {
     fontSize: 12,
     color: COLORS.textSecondary,
     marginBottom: 10,
     lineHeight: 17,
+  },
+  upiLaunchBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#059669',
+    borderRadius: RADIUS.md,
+    padding: 12,
+    marginBottom: 12,
+    ...SHADOWS.sm,
+  },
+  upiLaunchIcon: {
+    fontSize: 22,
+    color: '#FFFFFF',
+    marginRight: 10,
+  },
+  upiLaunchTitle: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#FFFFFF',
+  },
+  upiLaunchSub: {
+    fontSize: 11,
+    color: '#D1FAE5',
+    marginTop: 1,
+  },
+  upiLaunchArrow: {
+    fontSize: 18,
+    color: '#FFFFFF',
+    fontWeight: '900',
+    marginLeft: 8,
+  },
+  qrContainer: {
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
+    borderRadius: RADIUS.lg,
+    padding: 12,
+    marginBottom: SPACING.md,
+  },
+  qrTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: COLORS.textPrimary,
+    marginBottom: 8,
+  },
+  qrImage: {
+    width: 170,
+    height: 170,
+    backgroundColor: '#F8FAFC',
+    borderRadius: RADIUS.sm,
+  },
+  qrSubtitle: {
+    fontSize: 10,
+    color: COLORS.textMuted,
+    fontWeight: '700',
+    marginTop: 6,
   },
   bankAccountCard: {
     backgroundColor: '#FFFBEB',
@@ -418,7 +524,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 4,
+    paddingVertical: 5,
     borderBottomWidth: 1,
     borderBottomColor: '#FDE68A',
   },
@@ -450,6 +556,32 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: '800',
     color: '#B45309',
+  },
+  gatewayInfoBox: {
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#93C5FD',
+    borderRadius: RADIUS.md,
+    padding: 12,
+    marginBottom: SPACING.md,
+  },
+  gatewayTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#1E40AF',
+  },
+  gatewaySub: {
+    fontSize: 12,
+    color: '#1E3A8A',
+    marginTop: 4,
+    lineHeight: 16,
+  },
+  gatewayKey: {
+    fontSize: 11,
+    color: '#3B82F6',
+    fontFamily: 'monospace',
+    marginTop: 6,
+    fontWeight: '600',
   },
   payBtn: {
     marginVertical: SPACING.sm,
