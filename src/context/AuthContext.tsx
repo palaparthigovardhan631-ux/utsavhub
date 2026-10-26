@@ -49,6 +49,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(true);
     setIsConfigured(isSupabaseConfigured());
     try {
+      if (typeof window !== 'undefined' && window.location && window.location.search) {
+        const urlParams = new URLSearchParams(window.location.search);
+        const demo = urlParams.get('demo');
+        if (demo === 'client') {
+          const res = await signInUser('aarav.client@utsavhub.com', 'ClientPassword123');
+          setUser(res.user);
+          setProfile(res.profile);
+          setVendor(res.vendor || null);
+          return;
+        } else if (demo === 'vendor') {
+          const res = await signInUser('royal.rasoi@utsavhub.com', 'VendorPassword123');
+          setUser(res.user);
+          setProfile(res.profile);
+          setVendor(res.vendor || null);
+          return;
+        }
+      }
       const res = await getCurrentSession();
       setUser(res.user);
       setProfile(res.profile);

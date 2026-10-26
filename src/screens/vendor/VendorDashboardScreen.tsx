@@ -29,7 +29,7 @@ interface VendorDashboardProps {
 export const VendorDashboardScreen: React.FC<VendorDashboardProps> = ({ navigation }) => {
   const { vendor, refreshSession } = useAuth();
   const [bookings, setBookings] = useState<Booking[]>([]);
-  const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState<boolean>(false);
+  const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState<boolean>(typeof window !== 'undefined' && Boolean(window.location?.search?.includes('sub=1')));
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
 
