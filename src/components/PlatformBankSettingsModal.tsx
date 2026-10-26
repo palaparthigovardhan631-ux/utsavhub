@@ -77,7 +77,7 @@ export const PlatformBankSettingsModal: React.FC<PlatformBankSettingsModalProps>
 
     Alert.alert(
       'Banking Credentials Saved! ✅',
-      'Vendor subscription fees will now be directed to your configured UPI ID and Bank Account.'
+      'Vendor subscription fees will now be directed to your configured UPI ID and Central Bank of India Account.'
     );
 
     if (onSaved) onSaved();
@@ -105,20 +105,20 @@ export const PlatformBankSettingsModal: React.FC<PlatformBankSettingsModalProps>
           <ScrollView style={styles.body} keyboardShouldPersistTaps="handled">
             <View style={styles.infoBanner}>
               <Text style={styles.infoText}>
-                💡 Enter your personal or company bank details below. The app will generate a direct UPI payment link and dynamic QR code automatically.
+                💡 Vendor subscription payments of ₹{monthlyFee} will be sent to your Central Bank of India account below via direct UPI deep-link or NEFT/IMPS.
               </Text>
             </View>
 
             <Input
               label="Account Holder / Beneficiary Name"
-              placeholder="e.g. Palaparthi Govardhan"
+              placeholder="e.g. PALAPARTI GOVARDHAN"
               value={accountHolder}
               onChangeText={setAccountHolder}
             />
 
             <Input
               label="Your Primary UPI ID (for instant GPay / PhonePe / Paytm payments)"
-              placeholder="e.g. yourname@okhdfcbank or yourphone@ybl"
+              placeholder="e.g. palapartigovardhan@cbin or yourphone@ybl"
               value={upiId}
               onChangeText={setUpiId}
               autoCapitalize="none"
@@ -126,7 +126,7 @@ export const PlatformBankSettingsModal: React.FC<PlatformBankSettingsModalProps>
 
             <Input
               label="Bank Account Number"
-              placeholder="e.g. 50200084920194"
+              placeholder="e.g. 5506452243"
               value={accountNumber}
               onChangeText={setAccountNumber}
               keyboardType="numeric"
@@ -136,7 +136,7 @@ export const PlatformBankSettingsModal: React.FC<PlatformBankSettingsModalProps>
               <View style={{ flex: 1 }}>
                 <Input
                   label="IFSC Code"
-                  placeholder="e.g. HDFC0001234"
+                  placeholder="e.g. CBIN0281028"
                   value={ifscCode}
                   onChangeText={setIfscCode}
                   autoCapitalize="characters"
@@ -155,14 +155,14 @@ export const PlatformBankSettingsModal: React.FC<PlatformBankSettingsModalProps>
 
             <Input
               label="Bank Name"
-              placeholder="e.g. State Bank of India / HDFC Bank"
+              placeholder="e.g. Central Bank of India"
               value={bankName}
               onChangeText={setBankName}
             />
 
             <Input
               label="Branch Name / Location"
-              placeholder="e.g. Connaught Place, New Delhi"
+              placeholder="e.g. Manikonda Branch, Krishna District, AP - 521260"
               value={branch}
               onChangeText={setBranch}
             />

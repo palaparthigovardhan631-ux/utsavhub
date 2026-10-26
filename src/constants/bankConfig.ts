@@ -1,21 +1,21 @@
 // ==============================================================================
 // UTSAVHUB PLATFORM SUBSCRIPTION BANK & PAYMENT CONFIGURATION
-// Used for processing real-world vendor monthly subscription payments
-// Supports UPI App Deep Linking, Dynamic QR Codes, and Real Bank Details
+// Real-World Banking Credentials for Vendor Monthly Subscription Transfers
+// Central Bank of India • PALAPARTI GOVARDHAN • A/C 5506452243 • IFSC CBIN0281028
 // ==============================================================================
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { PlatformBankDetails } from '../types';
 
-const STORAGE_KEY_PLATFORM_BANK = '@utsavhub_platform_bank_v1';
+const STORAGE_KEY_PLATFORM_BANK = '@utsavhub_platform_bank_v2';
 
 export const DEFAULT_PLATFORM_BANK_DETAILS: PlatformBankDetails = {
-  bankName: process.env.EXPO_PUBLIC_PLATFORM_BANK_NAME || 'State Bank of India',
-  accountHolder: process.env.EXPO_PUBLIC_PLATFORM_BANK_HOLDER || 'Palaparthi Govardhan',
-  accountNumber: process.env.EXPO_PUBLIC_PLATFORM_BANK_ACCOUNT || '309876543210',
-  ifscCode: process.env.EXPO_PUBLIC_PLATFORM_BANK_IFSC || 'SBIN0001234',
-  branch: 'Main City Branch',
-  upiId: process.env.EXPO_PUBLIC_PLATFORM_UPI_ID || 'palaparthigovardhan@upi',
+  bankName: process.env.EXPO_PUBLIC_PLATFORM_BANK_NAME || 'Central Bank of India',
+  accountHolder: process.env.EXPO_PUBLIC_PLATFORM_BANK_HOLDER || 'PALAPARTI GOVARDHAN',
+  accountNumber: process.env.EXPO_PUBLIC_PLATFORM_BANK_ACCOUNT || '5506452243',
+  ifscCode: process.env.EXPO_PUBLIC_PLATFORM_BANK_IFSC || 'CBIN0281028',
+  branch: 'Manikonda Branch, Krishna District, Andhra Pradesh - 521260',
+  upiId: process.env.EXPO_PUBLIC_PLATFORM_UPI_ID || 'palapartigovardhan@cbin',
   monthlyFee: Number(process.env.EXPO_PUBLIC_SUBSCRIPTION_MONTHLY_PRICE) || 499,
   currency: 'INR',
 };
