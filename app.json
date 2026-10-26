@@ -36,7 +36,11 @@
     },
     "web": {
       "favicon": "./assets/favicon.png",
-      "bundler": "metro"
+      "bundler": "metro",
+      "title": "UtsavHub — India's Premier Event & Catering Marketplace",
+      "description": "Book verified caterers, band mela, tent houses, shamiana and lighting vendors for your events across India.",
+      "lang": "en",
+      "themeColor": "#E85D04"
     },
     "plugins": [
       [
